@@ -136,10 +136,14 @@ st.plotly_chart(fig_merch, use_container_width=True)
 
 # ── Raw transactions table ────────────────────────────────────────────────────
 with st.expander("Raw Transactions"):
+    search = st.text_input("Search transactions", placeholder="e.g. Amazon, Starbucks...")
     display_cols = ["date", "description", "merchant_raw", "amount", "category", "card"]
     show_cols = [c for c in display_cols if c in expenses.columns]
-    st.dataframe(
-        expenses[show_cols].sort_values("date", ascending=False),
-        use_container_width=True,
-        hide_index=True,
-    )
+    table_data = expenses[show_cols].sort_values("date", ascending=False)
+    if search:
+        mask = (
+            table_data["description"].str.contains(search, case=False, na=False)
+            | table_data["merchant_raw"].str.contains(search, case=False, na=False)
+        )
+        table_data = table_data[mask]
+    st.dataframe(table_data, use_container_width=True, hide_index=True)
