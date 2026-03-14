@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from parsers.csv_parser import parse_uploaded_csv
-from db.database import load_transactions, insert_transactions, get_transaction_count
+from db.database import load_transactions, insert_transactions, get_transaction_count, clear_all_transactions
 
 st.set_page_config(page_title="Moneys Dashboard", layout="wide")
 st.title("Moneys")
@@ -38,6 +38,9 @@ with st.sidebar:
 
     st.divider()
     st.caption(f"Database: {get_transaction_count():,} transactions")
+    if st.button("Clear database", type="secondary"):
+        clear_all_transactions()
+        st.rerun()
 
 # ── Load data from database ───────────────────────────────────────────────────
 data = load_transactions()
@@ -45,6 +48,10 @@ data = load_transactions()
 if data.empty:
     st.info("No transactions yet. Upload CSVs from the sidebar to get started.")
     st.stop()
+
+# Rename account → card for any rows imported before this fix
+if "account" in data.columns and "card" not in data.columns:
+    data = data.rename(columns={"account": "card"})
 
 expenses_all = data[data["amount"] > 0].copy()
 

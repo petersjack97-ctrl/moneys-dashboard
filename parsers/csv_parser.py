@@ -25,7 +25,7 @@ from parsers.categorizer import normalize_category
 def detect_bank(columns: list[str]) -> str:
     cols = {c.lower() for c in columns}
 
-    if "merchant" in cols and "amount (usd)" in cols:
+    if "amount (usd)" in cols:
         return "apple"
 
     if "extended details" in cols or "appears on your statement as" in cols:
@@ -142,6 +142,6 @@ def parse_uploaded_csv(uploaded_file, account_label: str = "") -> pd.DataFrame:
     )
 
     df["month"] = df["date"].dt.to_period("M").astype(str)
-    df["account"] = account_label or uploaded_file.name
+    df["card"] = account_label or uploaded_file.name
 
     return df

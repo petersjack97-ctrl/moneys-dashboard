@@ -85,3 +85,9 @@ def get_transaction_count() -> int:
     with get_conn() as conn:
         row = conn.execute("SELECT COUNT(*) FROM transactions").fetchone()
     return row[0]
+
+
+def clear_all_transactions():
+    init_db()
+    with get_conn() as conn:
+        conn.execute("DELETE FROM transactions")
