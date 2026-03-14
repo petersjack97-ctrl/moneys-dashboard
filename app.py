@@ -40,24 +40,30 @@ data = data.rename(columns={"account": "card"})
 # Only work with expenses (positive amounts = money out)
 expenses_all = data[data["amount"] > 0].copy()
 
-# ── Sidebar filters (month + card) ───────────────────────────────────────────
+# ── Sidebar filters (month) ───────────────────────────────────────────────────
 with st.sidebar:
     st.header("Filters")
-
     months = sorted(expenses_all["month"].unique())
     selected_months = st.multiselect("Month", months, default=months)
 
-    cards = sorted(expenses_all["card"].unique())
-    selected_cards = st.multiselect("Card", cards, default=cards)
+# ── Page-level filters (category + card) ─────────────────────────────────────
+filter_col1, filter_col2 = st.columns(2)
 
-# ── Page-level category filter ───────────────────────────────────────────────
-categories = sorted(expenses_all["category"].unique())
-selected_categories = st.multiselect(
-    "Filter by category",
-    options=categories,
-    default=categories,
-    placeholder="Select categories...",
-)
+with filter_col1:
+    categories = sorted(expenses_all["category"].unique())
+    selected_categories = st.multiselect(
+        "Filter by category",
+        options=categories,
+        default=categories,
+    )
+
+with filter_col2:
+    cards = sorted(expenses_all["card"].unique())
+    selected_cards = st.multiselect(
+        "Filter by card",
+        options=cards,
+        default=cards,
+    )
 
 # ── Apply all filters ─────────────────────────────────────────────────────────
 expenses = expenses_all[
