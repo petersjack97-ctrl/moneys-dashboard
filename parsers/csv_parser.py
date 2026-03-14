@@ -68,6 +68,10 @@ def _normalize_amex(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _normalize_apple(df: pd.DataFrame) -> pd.DataFrame:
+    # Drop payment and debit rows (bill payments, direct debits)
+    if "Type" in df.columns:
+        df = df[~df["Type"].str.strip().str.lower().isin(["payment", "debit"])]
+
     # Use "Merchant" for cleaner names, fall back to "Description"
     description_col = "Merchant" if "Merchant" in df.columns else "Description"
     df = df.rename(columns={
