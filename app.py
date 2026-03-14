@@ -55,11 +55,36 @@ if "account" in data.columns and "card" not in data.columns:
 
 expenses_all = data[data["amount"] > 0].copy()
 
-# ── Sidebar: month filter ─────────────────────────────────────────────────────
+# ── Sidebar: date range + filters ────────────────────────────────────────────
 with st.sidebar:
     st.header("Filters")
-    months = sorted(expenses_all["month"].unique())
-    selected_months = st.multiselect("Month", months, default=months)
+
+    min_date = expenses_all["date"].min().date()
+    max_date = expenses_all["date"].max().date()
+
+    preset = st.selectbox(
+        "Date range",
+        ["All time", "This year", "Last 6 months", "Last 3 months", "Custom"],
+    )
+
+    today = pd.Timestamp.today().date()
+    if preset == "Last 3 months":
+        default_start = today - pd.DateOffset(months=3)
+        default_start = default_start.date()
+    elif preset == "Last 6 months":
+        default_start = today - pd.DateOffset(months=6)
+        default_start = default_start.date()
+    elif preset == "This year":
+        default_start = today.replace(month=1, day=1)
+    else:
+        default_start = min_date
+
+    if preset == "Custom":
+        date_start = st.date_input("From", value=default_start, min_value=min_date, max_value=max_date)
+        date_end = st.date_input("To", value=max_date, min_value=min_date, max_value=max_date)
+    else:
+        date_start = default_start
+        date_end = max_date
 
 # ── Page-level filters (category + card) ─────────────────────────────────────
 filter_col1, filter_col2 = st.columns(2)
@@ -82,7 +107,8 @@ with filter_col2:
 
 # ── Apply all filters ─────────────────────────────────────────────────────────
 expenses = expenses_all[
-    expenses_all["month"].isin(selected_months)
+    (expenses_all["date"].dt.date >= date_start)
+    & (expenses_all["date"].dt.date <= date_end)
     & expenses_all["card"].isin(selected_cards)
     & expenses_all["category"].isin(selected_categories)
 ]
@@ -107,13 +133,15 @@ with left:
 
 with right:
     st.subheader("Spending by Month")
-    month_totals = expenses.groupby("month")["amount"].sum().reset_index()
+    month_cat = expenses.groupby(["month", "category"])["amount"].sum().reset_index()
     fig_month = px.bar(
-        month_totals,
+        month_cat,
         x="month",
         y="amount",
-        labels={"month": "Month", "amount": "Spent ($)"},
+        color="category",
+        labels={"month": "Month", "amount": "Spent ($)", "category": "Category"},
     )
+    fig_month.update_layout(barmode="stack", xaxis_tickangle=-45)
     st.plotly_chart(fig_month, use_container_width=True)
 
 st.subheader("Top 20 Merchants")
