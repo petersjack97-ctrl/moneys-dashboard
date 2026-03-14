@@ -1,6 +1,7 @@
 import pandas as pd
 import io
 from parsers.merchant_cleaner import clean_merchant
+from parsers.categorizer import normalize_category
 
 # ── Chase (Sapphire, Freedom Flex, any Chase card) ───────────────────────────
 # Columns: Transaction Date, Post Date, Description, Category, Type, Amount
@@ -132,6 +133,10 @@ def parse_uploaded_csv(uploaded_file, account_label: str = "") -> pd.DataFrame:
 
     df["merchant_raw"] = df["description"].copy()
     df["description"] = df["description"].apply(clean_merchant)
+
+    df["category"] = df.apply(
+        lambda r: normalize_category(r["category"], r["description"]), axis=1
+    )
 
     df["month"] = df["date"].dt.to_period("M").astype(str)
     df["account"] = account_label or uploaded_file.name
