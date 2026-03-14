@@ -110,6 +110,19 @@ _NORMALIZERS = {
 }
 
 
+def _label_from_filename(filename: str) -> str:
+    name = filename.lower()
+    if "apple" in name:
+        return "Apple Card"
+    if "freedom" in name:
+        return "Chase Freedom Flex"
+    if "sapphire" in name:
+        return "Chase Sapphire Preferred"
+    if "amex" in name or "amx" in name or "american express" in name:
+        return "American Express"
+    return filename.replace(".csv", "")
+
+
 def parse_uploaded_csv(uploaded_file, account_label: str = "") -> pd.DataFrame:
     content = uploaded_file.read()
 
@@ -142,6 +155,6 @@ def parse_uploaded_csv(uploaded_file, account_label: str = "") -> pd.DataFrame:
     )
 
     df["month"] = df["date"].dt.to_period("M").astype(str)
-    df["card"] = account_label or uploaded_file.name
+    df["card"] = _label_from_filename(account_label or uploaded_file.name)
 
     return df
