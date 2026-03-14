@@ -1,5 +1,6 @@
 import pandas as pd
 import io
+from parsers.merchant_cleaner import clean_merchant
 
 # ── Chase (Sapphire, Freedom Flex, any Chase card) ───────────────────────────
 # Columns: Transaction Date, Post Date, Description, Category, Type, Amount
@@ -128,6 +129,9 @@ def parse_uploaded_csv(uploaded_file, account_label: str = "") -> pd.DataFrame:
     if "category" not in df.columns:
         df["category"] = "Uncategorized"
     df["category"] = df["category"].fillna("Uncategorized")
+
+    df["merchant_raw"] = df["description"].copy()
+    df["description"] = df["description"].apply(clean_merchant)
 
     df["month"] = df["date"].dt.to_period("M").astype(str)
     df["account"] = account_label or uploaded_file.name

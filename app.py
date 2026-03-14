@@ -111,8 +111,10 @@ st.plotly_chart(fig_merch, use_container_width=True)
 
 # ── Raw table ────────────────────────────────────────────────────────────────
 with st.expander("Raw Transactions"):
+    display_cols = ["date", "description", "merchant_raw", "amount", "category", "account"]
+    show_cols = [c for c in display_cols if c in expenses.columns]
     st.dataframe(
-        expenses.sort_values("date", ascending=False),
+        expenses[show_cols].sort_values("date", ascending=False),
         use_container_width=True,
         hide_index=True,
     )
