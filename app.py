@@ -30,14 +30,22 @@ with st.sidebar:
             except Exception as e:
                 st.warning(f"Could not parse {f.name}: {e}")
 
-        if total_inserted > 0:
-            st.success(f"Added {total_inserted} new transactions.")
-        if total_skipped > 0:
-            st.info(f"Skipped {total_skipped} duplicates.")
         propagated = propagate_categories()
-        if propagated > 0:
-            st.info(f"Auto-categorized {propagated} transactions from matching merchants.")
+        st.session_state["import_summary"] = {
+            "inserted": total_inserted,
+            "skipped": total_skipped,
+            "propagated": propagated,
+        }
         st.rerun()
+
+    if "import_summary" in st.session_state:
+        s = st.session_state.pop("import_summary")
+        if s["inserted"] > 0:
+            st.success(f"Added {s['inserted']} new transactions.")
+        if s["skipped"] > 0:
+            st.info(f"Skipped {s['skipped']} duplicates.")
+        if s["propagated"] > 0:
+            st.info(f"Auto-categorized {s['propagated']} transactions from matching merchants.")
 
     st.divider()
     st.caption(f"Database: {get_transaction_count():,} transactions")
