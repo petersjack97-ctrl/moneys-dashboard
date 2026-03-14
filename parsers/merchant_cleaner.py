@@ -130,17 +130,21 @@ _POS_PREFIXES = re.compile(
 # ── Generic cleanup steps ─────────────────────────────────────────────────────
 _AFTER_STAR    = re.compile(r"\*.*$")
 _STORE_NUMBER  = re.compile(r"\s*#\d+")
-_PHONE_NUMBER  = re.compile(r"\s+\d{10,}\s*")              # 10+ digit phone numbers
-_STREET_ADDR   = re.compile(                                # "123 MAIN ST ... 07732 NJ USA"
+_PHONE_NUMBER  = re.compile(            # 800-555-1234, 1-800-555-1234, 8005551234
+    r"\s+1?[-.]?\(?\d{3}\)?[-.]?\d{3}[-.]?\d{4}\b",
+)
+_LONG_DIGITS   = re.compile(r"\s+\d{7,}")                   # 7+ digit numbers (IDs, etc.)
+_STREET_ADDR   = re.compile(                                 # "123 MAIN ST ... 07732 NJ USA"
     r"\s+\d{1,5}\s+(?:\w+\s+)*(?:ST|AVE|BLVD|RD|DR|LN|PL|WAY|PLAZA|PKWY|CT|HWY|HIGHWAY|ROUTE|RT)\b.*$",
     re.IGNORECASE,
 )
-_ZIP_ONWARDS   = re.compile(r"\s+\d{5}(?:-\d{4})?\s*\w*\s*$")  # trailing zip + country
-_STATE_COUNTRY = re.compile(r"\s+[A-Z]{2}\s+USA\s*$")      # "NJ USA"
-_TRAILING_DIGITS = re.compile(r"\s+\d{4,}$")
-_LOCATION_DASH   = re.compile(r"\s+-\s+[A-Z\s,]+[A-Z]{2}$")
-_LOCATION_COMMA  = re.compile(r"\s+[A-Z\s]+,\s*[A-Z]{2}$")
-_DOMAIN_EXT      = re.compile(r"\.(COM|NET|ORG|IO|CO)\b.*$", re.IGNORECASE)
+_ZIP_CODE      = re.compile(r"\s+\d{5}(?:-\d{4})?")        # 07732 or 07732-1234
+_USA           = re.compile(r"\s+USA\s*$", re.IGNORECASE)
+_STATE_CODE    = re.compile(r"\s+\b[A-Z]{2}\b\s*$")        # trailing state code e.g. "NJ"
+_LOCATION_DASH = re.compile(r"\s+-\s+[A-Z\s,]+[A-Z]{2}$")
+_LOCATION_COMMA= re.compile(r"\s+[A-Z\s]+,\s*[A-Z]{2}$")
+_DOMAIN_EXT    = re.compile(r"\.(COM|NET|ORG|IO|CO)\b.*$", re.IGNORECASE)
+_TRAILING_JUNK = re.compile(r"\s+\d{4,}$")                 # trailing 4+ digit codes
 
 
 def clean_merchant(raw: str) -> str:
@@ -164,14 +168,16 @@ def clean_merchant(raw: str) -> str:
             return clean_name
 
     name = _AFTER_STAR.sub("", name).strip()
-    name = _PHONE_NUMBER.sub(" ", name).strip()
+    name = _PHONE_NUMBER.sub("", name).strip()
+    name = _LONG_DIGITS.sub("", name).strip()
     name = _STREET_ADDR.sub("", name).strip()
-    name = _ZIP_ONWARDS.sub("", name).strip()
-    name = _STATE_COUNTRY.sub("", name).strip()
+    name = _ZIP_CODE.sub("", name).strip()
+    name = _USA.sub("", name).strip()
+    name = _STATE_CODE.sub("", name).strip()
     name = _STORE_NUMBER.sub("", name).strip()
-    name = _TRAILING_DIGITS.sub("", name).strip()
     name = _LOCATION_DASH.sub("", name).strip()
     name = _LOCATION_COMMA.sub("", name).strip()
     name = _DOMAIN_EXT.sub("", name).strip()
+    name = _TRAILING_JUNK.sub("", name).strip()
 
     return name.title() if name else raw.strip().title()
