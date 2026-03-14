@@ -84,8 +84,7 @@ def _normalize_apple(df: pd.DataFrame) -> pd.DataFrame:
     df = df[keep].copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
-    # Apple Card: purchases are negative — negate so expenses are positive
-    df["amount"] = df["amount"] * -1
+    # Apple Card: purchases are positive, payments are negative — no negation needed
     return df
 
 
