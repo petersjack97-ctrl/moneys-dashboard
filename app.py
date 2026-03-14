@@ -14,7 +14,7 @@ with st.sidebar:
         type="csv",
         accept_multiple_files=True,
     )
-    st.caption("Supports Chase, Bank of America, TD Bank, and generic CSVs.")
+    st.caption("Supports Chase (Sapphire, Freedom Flex), Amex, Apple Card, and generic CSVs.")
 
 # ── Load & combine data ──────────────────────────────────────────────────────
 if not uploaded_files:
