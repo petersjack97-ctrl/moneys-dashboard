@@ -2,45 +2,53 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from parsers.csv_parser import parse_uploaded_csv
+from db.database import load_transactions, insert_transactions, get_transaction_count
 
 st.set_page_config(page_title="Moneys Dashboard", layout="wide")
 st.title("Moneys")
 
-# ── Sidebar: upload ──────────────────────────────────────────────────────────
+# ── Sidebar: import new CSVs ──────────────────────────────────────────────────
 with st.sidebar:
-    st.header("Upload Transactions")
+    st.header("Import Transactions")
     uploaded_files = st.file_uploader(
-        "Drop bank CSVs here",
+        "Upload CSVs to add to database",
         type="csv",
         accept_multiple_files=True,
     )
     st.caption("Supports Chase (Sapphire, Freedom Flex), Amex, Apple Card, and generic CSVs.")
 
-# ── Load & combine data ──────────────────────────────────────────────────────
-if not uploaded_files:
-    st.info("Upload one or more bank CSV files from the sidebar to get started.")
+    if uploaded_files and st.button("Import", type="primary"):
+        total_inserted = 0
+        total_skipped = 0
+        for f in uploaded_files:
+            try:
+                df = parse_uploaded_csv(f, account_label=f.name.replace(".csv", ""))
+                expenses = df[df["amount"] > 0].copy()
+                inserted, skipped = insert_transactions(expenses)
+                total_inserted += inserted
+                total_skipped += skipped
+            except Exception as e:
+                st.warning(f"Could not parse {f.name}: {e}")
+
+        if total_inserted > 0:
+            st.success(f"Added {total_inserted} new transactions.")
+        if total_skipped > 0:
+            st.info(f"Skipped {total_skipped} duplicates.")
+        st.rerun()
+
+    st.divider()
+    st.caption(f"Database: {get_transaction_count():,} transactions")
+
+# ── Load data from database ───────────────────────────────────────────────────
+data = load_transactions()
+
+if data.empty:
+    st.info("No transactions yet. Upload CSVs from the sidebar to get started.")
     st.stop()
 
-frames = []
-for f in uploaded_files:
-    try:
-        df = parse_uploaded_csv(f, account_label=f.name.replace(".csv", ""))
-        frames.append(df)
-    except Exception as e:
-        st.warning(f"Could not parse {f.name}: {e}")
-
-if not frames:
-    st.error("No files could be parsed.")
-    st.stop()
-
-data = pd.concat(frames, ignore_index=True)
-# Rename account → card everywhere
-data = data.rename(columns={"account": "card"})
-
-# Only work with expenses (positive amounts = money out)
 expenses_all = data[data["amount"] > 0].copy()
 
-# ── Sidebar filters (month) ───────────────────────────────────────────────────
+# ── Sidebar: month filter ─────────────────────────────────────────────────────
 with st.sidebar:
     st.header("Filters")
     months = sorted(expenses_all["month"].unique())
