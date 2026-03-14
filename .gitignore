@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# Data (keep real transaction data out of git)
+data/*.csv
+data/*.ofx
+data/*.qfx
+*.db
+
+# OS
+.DS_Store
