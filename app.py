@@ -132,13 +132,41 @@ col3.metric("Avg per Transaction", f"${expenses['amount'].mean():,.2f}" if len(e
 
 st.divider()
 
+# ── Shared category color map ─────────────────────────────────────────────────
+CATEGORY_COLORS = {
+    "Food & Drink":       "#EF553B",
+    "Groceries":          "#00CC96",
+    "Shopping":           "#636EFA",
+    "Travel":             "#AB63FA",
+    "Transportation":     "#FFA15A",
+    "Entertainment":      "#19D3F3",
+    "Health & Wellness":  "#FF6692",
+    "Gas":                "#B6E880",
+    "Bills & Utilities":  "#FF97FF",
+    "Personal":           "#FECB52",
+    "Home":               "#0D2A63",
+    "Education":          "#3D9970",
+    "Automotive":         "#7F7F7F",
+    "Fees & Adjustments": "#BCBD22",
+    "Gifts & Donations":  "#17BECF",
+    "Business":           "#1F77B4",
+    "Uncategorized":      "#D3D3D3",
+}
+
 # ── Charts ───────────────────────────────────────────────────────────────────
 left, right = st.columns(2)
 
 with left:
     st.subheader("Spending by Category")
     cat_totals = expenses.groupby("category")["amount"].sum().reset_index()
-    fig_cat = px.pie(cat_totals, names="category", values="amount", hole=0.4)
+    fig_cat = px.pie(
+        cat_totals,
+        names="category",
+        values="amount",
+        hole=0.4,
+        color="category",
+        color_discrete_map=CATEGORY_COLORS,
+    )
     fig_cat.update_traces(textposition="inside", textinfo="percent+label")
     st.plotly_chart(fig_cat, use_container_width=True)
 
@@ -150,6 +178,7 @@ with right:
         x="month",
         y="amount",
         color="category",
+        color_discrete_map=CATEGORY_COLORS,
         labels={"month": "Month", "amount": "Spent ($)", "category": "Category"},
     )
     fig_month.update_layout(barmode="stack", xaxis_tickangle=-45)
