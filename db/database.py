@@ -91,3 +91,32 @@ def clear_all_transactions():
     init_db()
     with get_conn() as conn:
         conn.execute("DELETE FROM transactions")
+
+
+def propagate_categories() -> int:
+    """
+    For every Uncategorized transaction, look up the most common known
+    category for that merchant across all cards and apply it.
+    Returns the number of transactions updated.
+    """
+    init_db()
+    with get_conn() as conn:
+        updated = conn.execute("""
+            UPDATE transactions
+            SET category = (
+                SELECT category
+                FROM transactions t2
+                WHERE t2.description = transactions.description
+                  AND t2.category != 'Uncategorized'
+                GROUP BY t2.category
+                ORDER BY COUNT(*) DESC
+                LIMIT 1
+            )
+            WHERE category = 'Uncategorized'
+              AND EXISTS (
+                SELECT 1 FROM transactions t2
+                WHERE t2.description = transactions.description
+                  AND t2.category != 'Uncategorized'
+              )
+        """)
+    return updated.rowcount

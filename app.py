@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from parsers.csv_parser import parse_uploaded_csv
-from db.database import load_transactions, insert_transactions, get_transaction_count, clear_all_transactions
+from db.database import load_transactions, insert_transactions, get_transaction_count, clear_all_transactions, propagate_categories
 
 st.set_page_config(page_title="Moneys Dashboard", layout="wide")
 st.title("Moneys")
@@ -34,6 +34,9 @@ with st.sidebar:
             st.success(f"Added {total_inserted} new transactions.")
         if total_skipped > 0:
             st.info(f"Skipped {total_skipped} duplicates.")
+        propagated = propagate_categories()
+        if propagated > 0:
+            st.info(f"Auto-categorized {propagated} transactions from matching merchants.")
         st.rerun()
 
     st.divider()
