@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from parsers.csv_parser import parse_uploaded_csv
-from db.database import load_transactions, insert_transactions, get_transaction_count, clear_all_transactions, propagate_categories
+from db.database import load_transactions, insert_transactions, get_transaction_count, clear_all_transactions, propagate_categories, update_categories
 
 st.set_page_config(page_title="Moneys Dashboard", layout="wide")
 st.title("Moneys")
@@ -231,15 +231,54 @@ fig_merch.update_layout(yaxis={"categoryorder": "total ascending"})
 st.plotly_chart(fig_merch, use_container_width=True)
 
 # ── Raw transactions table ────────────────────────────────────────────────────
-with st.expander("Raw Transactions"):
+with st.expander("Transactions"):
     search = st.text_input("Search transactions", placeholder="e.g. Amazon, Starbucks...")
-    display_cols = ["date", "description", "merchant_raw", "amount", "category", "card"]
+
+    all_categories = sorted(expenses_all["category"].unique().tolist())
+    display_cols = ["id", "date", "description", "merchant_raw", "amount", "category", "card", "is_manual"]
     show_cols = [c for c in display_cols if c in expenses.columns]
     table_data = expenses[show_cols].sort_values("date", ascending=False)
+
     if search:
         mask = (
             table_data["description"].str.contains(search, case=False, na=False)
             | table_data["merchant_raw"].str.contains(search, case=False, na=False)
         )
         table_data = table_data[mask]
-    st.dataframe(table_data, use_container_width=True, hide_index=True)
+
+    edited = st.data_editor(
+        table_data,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "id":          st.column_config.NumberColumn("ID", disabled=True),
+            "date":        st.column_config.DateColumn("Date", disabled=True),
+            "description": st.column_config.TextColumn("Merchant", disabled=True),
+            "merchant_raw":st.column_config.TextColumn("Raw", disabled=True),
+            "amount":      st.column_config.NumberColumn("Amount ($)", disabled=True, format="$%.2f"),
+            "card":        st.column_config.TextColumn("Card", disabled=True),
+            "is_manual":   st.column_config.CheckboxColumn("Manual", disabled=True),
+            "category":    st.column_config.SelectboxColumn(
+                "Category",
+                options=all_categories,
+                required=True,
+            ),
+        },
+    )
+
+    if st.button("Save category changes", type="primary"):
+        changes = {}
+        for _, orig_row in table_data.iterrows():
+            tx_id = orig_row["id"]
+            edited_row = edited[edited["id"] == tx_id]
+            if not edited_row.empty:
+                new_cat = edited_row.iloc[0]["category"]
+                if new_cat != orig_row["category"]:
+                    changes[int(tx_id)] = new_cat
+
+        if changes:
+            update_categories(changes)
+            st.success(f"Saved {len(changes)} category change(s).")
+            st.rerun()
+        else:
+            st.info("No changes detected.")

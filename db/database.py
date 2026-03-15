@@ -23,10 +23,15 @@ def init_db():
                 category     TEXT,
                 card         TEXT,
                 month        TEXT,
+                is_manual    INTEGER DEFAULT 0,
                 imported_at  TEXT    DEFAULT (date('now')),
                 UNIQUE (date, merchant_raw, amount, card)
             )
         """)
+        # Migrate existing databases that don't have is_manual yet
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(transactions)")]
+        if "is_manual" not in cols:
+            conn.execute("ALTER TABLE transactions ADD COLUMN is_manual INTEGER DEFAULT 0")
 
 
 def insert_transactions(df: pd.DataFrame) -> tuple[int, int]:
@@ -93,10 +98,25 @@ def clear_all_transactions():
         conn.execute("DELETE FROM transactions")
 
 
+def update_categories(changes: dict[int, str]):
+    """
+    Permanently update categories for specific transaction IDs.
+    Marks them as is_manual=1 so they are never overwritten by auto-categorization.
+    changes: {id: new_category}
+    """
+    init_db()
+    with get_conn() as conn:
+        for tx_id, category in changes.items():
+            conn.execute(
+                "UPDATE transactions SET category = ?, is_manual = 1 WHERE id = ?",
+                (category, tx_id),
+            )
+
+
 def propagate_categories() -> int:
     """
-    For every Uncategorized transaction, look up the most common known
-    category for that merchant across all cards and apply it.
+    For every Uncategorized transaction (that isn't manually set), look up
+    the most common known category for that merchant and apply it.
     Returns the number of transactions updated.
     """
     init_db()
@@ -108,11 +128,13 @@ def propagate_categories() -> int:
                 FROM transactions t2
                 WHERE t2.description = transactions.description
                   AND t2.category != 'Uncategorized'
+                  AND t2.is_manual = 0
                 GROUP BY t2.category
                 ORDER BY COUNT(*) DESC
                 LIMIT 1
             )
             WHERE category = 'Uncategorized'
+              AND is_manual = 0
               AND EXISTS (
                 SELECT 1 FROM transactions t2
                 WHERE t2.description = transactions.description
