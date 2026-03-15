@@ -66,25 +66,22 @@ if "account" in data.columns and "card" not in data.columns:
 
 expenses_all = data[data["amount"] > 0].copy()
 
-# ── Sidebar: date range + filters ────────────────────────────────────────────
-with st.sidebar:
-    st.header("Filters")
+# ── Page-level filters ───────────────────────────────────────────────────────
+min_date = expenses_all["date"].min().date()
+max_date = expenses_all["date"].max().date()
+today = pd.Timestamp.today().date()
 
-    min_date = expenses_all["date"].min().date()
-    max_date = expenses_all["date"].max().date()
+filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
 
+with filter_col1:
     preset = st.selectbox(
         "Date range",
         ["All time", "This year", "Last 6 months", "Last 3 months", "Custom"],
     )
-
-    today = pd.Timestamp.today().date()
     if preset == "Last 3 months":
-        default_start = today - pd.DateOffset(months=3)
-        default_start = default_start.date()
+        default_start = (today - pd.DateOffset(months=3)).date()
     elif preset == "Last 6 months":
-        default_start = today - pd.DateOffset(months=6)
-        default_start = default_start.date()
+        default_start = (today - pd.DateOffset(months=6)).date()
     elif preset == "This year":
         default_start = today.replace(month=1, day=1)
     else:
@@ -97,10 +94,7 @@ with st.sidebar:
         date_start = default_start
         date_end = max_date
 
-# ── Page-level filters (category + card) ─────────────────────────────────────
-filter_col1, filter_col2 = st.columns(2)
-
-with filter_col1:
+with filter_col2:
     categories = sorted(expenses_all["category"].unique())
     selected_categories = st.multiselect(
         "Filter by category",
@@ -108,13 +102,16 @@ with filter_col1:
         default=categories,
     )
 
-with filter_col2:
+with filter_col3:
     cards = sorted(expenses_all["card"].unique())
     selected_cards = st.multiselect(
         "Filter by card",
         options=cards,
         default=cards,
     )
+
+with filter_col4:
+    pass  # reserved for future filters
 
 # ── Apply all filters ─────────────────────────────────────────────────────────
 expenses = expenses_all[
