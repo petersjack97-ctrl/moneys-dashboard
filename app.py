@@ -184,6 +184,25 @@ with right:
     fig_month.update_layout(barmode="stack", xaxis_tickangle=-45)
     st.plotly_chart(fig_month, use_container_width=True)
 
+st.subheader("Spending Trends by Category")
+trends = expenses.groupby(["month", "category"])["amount"].sum().reset_index()
+
+# Only show categories that have spend in the filtered period
+active_categories = trends[trends["amount"] > 0]["category"].unique()
+trends = trends[trends["category"].isin(active_categories)]
+
+fig_trends = px.line(
+    trends,
+    x="month",
+    y="amount",
+    color="category",
+    color_discrete_map=CATEGORY_COLORS,
+    markers=True,
+    labels={"month": "Month", "amount": "Spent ($)", "category": "Category"},
+)
+fig_trends.update_layout(xaxis_tickangle=-45, hovermode="x unified")
+st.plotly_chart(fig_trends, use_container_width=True)
+
 st.subheader("Top 20 Merchants")
 merchant_totals = (
     expenses.groupby("description")["amount"]
