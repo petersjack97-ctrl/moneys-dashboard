@@ -184,22 +184,34 @@ with right:
     fig_month.update_layout(barmode="stack", xaxis_tickangle=-45)
     st.plotly_chart(fig_month, use_container_width=True)
 
-st.subheader("Spending Trends by Category")
-trends = expenses.groupby(["month", "category"])["amount"].sum().reset_index()
-
-# Only show categories that have spend in the filtered period
-active_categories = trends[trends["amount"] > 0]["category"].unique()
-trends = trends[trends["category"].isin(active_categories)]
-
-fig_trends = px.line(
-    trends,
-    x="month",
-    y="amount",
-    color="category",
-    color_discrete_map=CATEGORY_COLORS,
-    markers=True,
-    labels={"month": "Month", "amount": "Spent ($)", "category": "Category"},
+st.subheader("Spending Trends")
+trend_view = st.radio(
+    "View", ["Total", "By Category"], horizontal=True, label_visibility="collapsed"
 )
+
+if trend_view == "Total":
+    trends = expenses.groupby("month")["amount"].sum().reset_index()
+    fig_trends = px.line(
+        trends,
+        x="month",
+        y="amount",
+        markers=True,
+        labels={"month": "Month", "amount": "Spent ($)"},
+    )
+else:
+    trends = expenses.groupby(["month", "category"])["amount"].sum().reset_index()
+    active_categories = trends[trends["amount"] > 0]["category"].unique()
+    trends = trends[trends["category"].isin(active_categories)]
+    fig_trends = px.line(
+        trends,
+        x="month",
+        y="amount",
+        color="category",
+        color_discrete_map=CATEGORY_COLORS,
+        markers=True,
+        labels={"month": "Month", "amount": "Spent ($)", "category": "Category"},
+    )
+
 fig_trends.update_layout(xaxis_tickangle=-45, hovermode="x unified")
 st.plotly_chart(fig_trends, use_container_width=True)
 
